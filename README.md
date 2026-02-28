@@ -14,87 +14,85 @@ Follow these step-by-step instructions to set up and run the project locally on 
 
 Before you begin, ensure you have the following installed on your system:
 1. **[Node.js](https://nodejs.org/)** (v18.0.0 or higher recommended)
-   - Note: Installing Node.js will automatically install `npm` (Node Package Manager).
-2. **Git** (optional, but recommended for version control)
+2. **[Python](https://www.python.org/)** (v3.8 or higher recommended)
+3. **Git** (optional, but recommended for version control)
 
-Check your installed versions using your terminal/command prompt:
+Check your installed versions using your terminal:
 ```bash
 node -v
-npm -v
+python --version
+# or python3 --version
 ```
 
 ---
 
 ### 💻 Step-by-Step Local Setup
 
-#### 🍎 For macOS
+Because the project is split into a **Python Backend** and a **React Frontend**, you will need to open **two separate terminal windows** to run the application fully.
 
-1. **Open the Terminal app** (you can find it via Spotlight Search `Cmd + Space` and typing "Terminal").
-2. **Clone the repository and navigate to the directory**:
-   ```bash
-   git clone https://github.com/Ganapathyram-Nandhagopal/pick-uppers.git
-   cd pick-uppers
-   ```
-3. **Install project dependencies**:
-   ```bash
-   npm install
-   ```
-   *(Alternatively, if you prefer `pnpm`: `pnpm install`)*
-4. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
+#### 1️⃣ Clone the Repository (Do this first)
 
-#### 🪟 For Windows (Command Prompt / PowerShell / WSL)
+Open your terminal and run:
+```bash
+git clone https://github.com/Ganapathyram-Nandhagopal/pick-uppers.git
+cd pick-uppers
+```
 
-1. **Open your preferred terminal** (Search for "cmd", "PowerShell", or "Terminal" in the Start menu).
-2. **Clone the repository and navigate to the directory**:
-   ```cmd
-   git clone https://github.com/Ganapathyram-Nandhagopal/pick-uppers.git
-   cd pick-uppers
-   ```
-3. **Install project dependencies**:
-   ```cmd
-   npm install
-   ```
-4. **Start the development server**:
-   ```cmd
-   npm run dev
-   ```
-   *Note: If you run into script execution errors in PowerShell, you may need to run `Set-ExecutionPolicy RemoteSigned` in an Administrator PowerShell window.*
+#### 2️⃣ Setup and Start the Backend (Terminal 1)
 
-#### 🐧 For Linux (Ubuntu / Debian / Fedora / Arch, etc.)
+In your first terminal window, navigate into the backend folder, install the python dependencies, and start the FastAPI server:
 
-1. **Open your terminal emulator** (usually `Ctrl + Alt + T`).
-2. **Clone the repository and navigate to the directory**:
-   ```bash
-   git clone https://github.com/Ganapathyram-Nandhagopal/pick-uppers.git
-   cd pick-uppers
-   ```
-3. **Ensure you have the right permissions and install dependencies**:
-   ```bash
-   npm install
-   ```
-4. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
+```bash
+cd backend
+
+# Create a virtual environment
+# On macOS/Linux:
+python3 -m venv venv
+source venv/bin/activate
+
+# On Windows (Command Prompt / PowerShell):
+# python -m venv venv
+# venv\Scripts\activate
+
+# Install the required Python packages
+pip install -r requirements.txt
+
+# Start the backend server
+uvicorn main:app --reload --port 8000
+```
+*The backend API will now be running at `http://localhost:8000`.*
+
+#### 3️⃣ Setup and Start the Frontend (Terminal 2)
+
+Open a **new, second terminal window**, ensure you are inside the `pick-uppers` project holder, and start the frontend:
+
+```bash
+cd frontend
+
+# Install project dependencies
+npm install
+# (Alternatively, if you prefer pnpm: pnpm install)
+
+# Start the Vite development server
+npm run dev
+```
 
 ---
 
 ## 🌐 Viewing the Application
 
-Once the development server is running, the terminal will display a local address, usually:
-```
-  ➜  Local:   http://localhost:5173/
-```
-Open your web browser (Chrome, Firefox, Safari, Edge) and go to `http://localhost:5173/` to view the application.
+Once **both** development servers (Backend and Frontend) are running concurrently:
+1. The backend API is quietly processing requests at `http://localhost:8000`.
+2. Open your web browser (Chrome, Firefox, Safari, Edge) and go to the frontend URL displayed in Terminal 2 (usually `http://localhost:5173/` or `http://localhost:5174/`).
 
-## 📦 Building for Production
+You can now view and interact with the full application!
 
-To create a production-ready build of the application:
+## 📦 Building for Production (Frontend)
+
+To create a production-ready build of the frontend application:
 
 ```bash
+cd frontend
 npm run build
 ```
-This will generate optimized, minified files in the `dist` folder. You can then serve this directory using any static file server.
+This will generate optimized, minified files in the `dist` folder.
