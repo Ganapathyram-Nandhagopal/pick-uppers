@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DollarSign,
   TrendingUp,
@@ -7,6 +7,7 @@ import {
   ArrowDownRight,
   Download,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -20,46 +21,57 @@ import {
   TableRow,
 } from './ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { financeData } from '../lib/mockData';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 export function Finance() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Calculate totals
-  const receivables = financeData.filter(r => r.type === 'Receivable');
-  const payables = financeData.filter(r => r.type === 'Payable');
+  useEffect(() => {
+    fetch('http://localhost:8000/api/finance')
+      .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then(json => {
+        setData(json);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
 
-  const totalReceivable = receivables.reduce((sum, r) => sum + r.amount, 0);
-  const totalPayable = payables.reduce((sum, r) => sum + r.amount, 0);
-  
-  const receivablePaid = receivables
-    .filter(r => r.status === 'Paid')
-    .reduce((sum, r) => sum + r.amount, 0);
-  const receivablePending = receivables
-    .filter(r => r.status === 'Pending')
-    .reduce((sum, r) => sum + r.amount, 0);
-  const receivableOverdue = receivables
-    .filter(r => r.status === 'Overdue')
-    .reduce((sum, r) => sum + r.amount, 0);
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
-  const payablePaid = payables
-    .filter(r => r.status === 'Paid')
-    .reduce((sum, r) => sum + r.amount, 0);
-  const payablePending = payables
-    .filter(r => r.status === 'Pending')
-    .reduce((sum, r) => sum + r.amount, 0);
+  if (error) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="text-center text-red-500 flex flex-col items-center gap-2">
+          <AlertCircle className="h-8 w-8 text-red-500" />
+          <p>Error loading finance data: {error}</p>
+        </div>
+      </div>
+    );
+  }
 
-  const receivableChartData = [
-    { name: 'Collected', value: receivablePaid, color: '#16A34A' },
-    { name: 'Pending', value: receivablePending, color: '#F59E0B' },
-    { name: 'Overdue', value: receivableOverdue, color: '#EF4444' },
-  ];
-
-  const payableChartData = [
-    { name: 'Paid', value: payablePaid, color: '#16A34A' },
-    { name: 'Pending', value: payablePending, color: '#F59E0B' },
-  ];
+  const {
+    records,
+    receivables,
+    payables,
+    totals: { totalReceivable, totalPayable, receivablePaid, receivableOverdue },
+    receivableChartData,
+    payableChartData,
+  } = data;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -75,7 +87,7 @@ export function Finance() {
   };
 
   return (
-    <div className="space-y-6 p-4 lg:p-6">
+    <div className="space-y-6 p-4 lg:p-6 w-full overflow-x-hidden">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -84,28 +96,28 @@ export function Finance() {
             Track receivables, payables, and cash flow
           </p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 self-start sm:self-auto">
           <Download className="h-4 w-4" />
           Export Report
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Receivable</p>
+                <p className="text-sm text-gray-600 truncate">Total Receivable</p>
                 <h3 className="mt-2 text-2xl font-semibold text-gray-900">
                   ₹{totalReceivable.toLocaleString()}
                 </h3>
                 <div className="mt-1 flex items-center gap-1 text-sm text-green-600">
                   <ArrowUpRight className="h-4 w-4" />
-                  <span>+8.2% from last month</span>
+                  <span className="truncate">+8.2% from last month</span>
                 </div>
               </div>
-              <div className="rounded-lg bg-green-50 p-3">
+              <div className="rounded-lg bg-green-50 p-3 shrink-0">
                 <TrendingUp className="h-6 w-6 text-green-600" />
               </div>
             </div>
@@ -116,16 +128,16 @@ export function Finance() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Payable</p>
+                <p className="text-sm text-gray-600 truncate">Total Payable</p>
                 <h3 className="mt-2 text-2xl font-semibold text-gray-900">
                   ₹{totalPayable.toLocaleString()}
                 </h3>
                 <div className="mt-1 flex items-center gap-1 text-sm text-red-600">
                   <ArrowDownRight className="h-4 w-4" />
-                  <span>-3.1% from last month</span>
+                  <span className="truncate">-3.1% from last month</span>
                 </div>
               </div>
-              <div className="rounded-lg bg-red-50 p-3">
+              <div className="rounded-lg bg-red-50 p-3 shrink-0">
                 <TrendingDown className="h-6 w-6 text-red-600" />
               </div>
             </div>
@@ -136,15 +148,15 @@ export function Finance() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-gray-600">Collected</p>
+                <p className="text-sm text-gray-600 truncate">Collected</p>
                 <h3 className="mt-2 text-2xl font-semibold text-gray-900">
                   ₹{receivablePaid.toLocaleString()}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 truncate">
                   {((receivablePaid / totalReceivable) * 100).toFixed(1)}% of total
                 </p>
               </div>
-              <div className="rounded-lg bg-blue-50 p-3">
+              <div className="rounded-lg bg-blue-50 p-3 shrink-0">
                 <DollarSign className="h-6 w-6 text-blue-600" />
               </div>
             </div>
@@ -155,13 +167,13 @@ export function Finance() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-gray-600">Overdue</p>
+                <p className="text-sm text-gray-600 truncate">Overdue</p>
                 <h3 className="mt-2 text-2xl font-semibold text-red-600">
                   ₹{receivableOverdue.toLocaleString()}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">Requires attention</p>
+                <p className="mt-1 text-sm text-gray-500 truncate">Requires attention</p>
               </div>
-              <div className="rounded-lg bg-orange-50 p-3">
+              <div className="rounded-lg bg-orange-50 p-3 shrink-0">
                 <AlertCircle className="h-6 w-6 text-orange-600" />
               </div>
             </div>
@@ -170,13 +182,13 @@ export function Finance() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>Accounts Receivable Breakdown</CardTitle>
+            <CardTitle className="truncate">Accounts Receivable Breakdown</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="flex-1">
+            <div className="h-64 sm:h-72 lg:h-80 min-h-[16rem]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -189,7 +201,7 @@ export function Finance() {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {receivableChartData.map((entry, index) => (
+                    {receivableChartData.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -207,12 +219,12 @@ export function Finance() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>Accounts Payable Breakdown</CardTitle>
+            <CardTitle className="truncate">Accounts Payable Breakdown</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="flex-1">
+            <div className="h-64 sm:h-72 lg:h-80 min-h-[16rem]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -225,7 +237,7 @@ export function Finance() {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {payableChartData.map((entry, index) => (
+                    {payableChartData.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -246,19 +258,34 @@ export function Finance() {
 
       {/* Detailed Tables */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="border-b px-6 pt-6">
-              <TabsList>
-                <TabsTrigger value="overview">All Transactions</TabsTrigger>
-                <TabsTrigger value="receivable">Receivables</TabsTrigger>
-                <TabsTrigger value="payable">Payables</TabsTrigger>
+            <div className="border-b px-4 sm:px-6 pt-4 sm:pt-6 overflow-x-auto no-scrollbar">
+              <TabsList className="w-full justify-start md:w-auto h-auto bg-transparent p-0 flex gap-2 sm:gap-4 mb-2">
+                <TabsTrigger
+                  value="overview"
+                  className="data-[state=active]:bg-gray-100 data-[state=active]:shadow-none px-4 py-2"
+                >
+                  All Transactions
+                </TabsTrigger>
+                <TabsTrigger
+                  value="receivable"
+                  className="data-[state=active]:bg-gray-100 data-[state=active]:shadow-none px-4 py-2"
+                >
+                  Receivables
+                </TabsTrigger>
+                <TabsTrigger
+                  value="payable"
+                  className="data-[state=active]:bg-gray-100 data-[state=active]:shadow-none px-4 py-2"
+                >
+                  Payables
+                </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="overview" className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
+            <TabsContent value="overview" className="p-0 m-0">
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Invoice/Bill</TableHead>
@@ -270,9 +297,9 @@ export function Finance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {financeData.map((record) => (
+                    {records.map((record: any) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="font-medium text-gray-900 whitespace-nowrap">
                           {record.invoiceNumber}
                         </TableCell>
                         <TableCell>
@@ -280,22 +307,22 @@ export function Finance() {
                             variant="outline"
                             className={
                               record.type === 'Receivable'
-                                ? 'border-green-200 text-green-700'
-                                : 'border-blue-200 text-blue-700'
+                                ? 'border-green-200 text-green-700 whitespace-nowrap'
+                                : 'border-blue-200 text-blue-700 whitespace-nowrap'
                             }
                           >
                             {record.type}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-gray-700">{record.party}</TableCell>
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="text-gray-700 whitespace-nowrap">{record.party}</TableCell>
+                        <TableCell className="font-medium text-gray-900 whitespace-nowrap">
                           ₹{record.amount.toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className="text-gray-700 whitespace-nowrap">
                           {new Date(record.dueDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(record.status)}>
+                          <Badge className={getStatusColor(record.status) + ' whitespace-nowrap'}>
                             {record.status}
                           </Badge>
                         </TableCell>
@@ -306,9 +333,9 @@ export function Finance() {
               </div>
             </TabsContent>
 
-            <TabsContent value="receivable" className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
+            <TabsContent value="receivable" className="p-0 m-0">
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[500px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Invoice</TableHead>
@@ -319,20 +346,20 @@ export function Finance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {receivables.map((record) => (
+                    {receivables.map((record: any) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="font-medium text-gray-900 whitespace-nowrap">
                           {record.invoiceNumber}
                         </TableCell>
-                        <TableCell className="text-gray-700">{record.party}</TableCell>
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="text-gray-700 whitespace-nowrap">{record.party}</TableCell>
+                        <TableCell className="font-medium text-gray-900 whitespace-nowrap">
                           ₹{record.amount.toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className="text-gray-700 whitespace-nowrap">
                           {new Date(record.dueDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(record.status)}>
+                          <Badge className={getStatusColor(record.status) + ' whitespace-nowrap'}>
                             {record.status}
                           </Badge>
                         </TableCell>
@@ -343,9 +370,9 @@ export function Finance() {
               </div>
             </TabsContent>
 
-            <TabsContent value="payable" className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
+            <TabsContent value="payable" className="p-0 m-0">
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[500px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Bill</TableHead>
@@ -356,20 +383,20 @@ export function Finance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payables.map((record) => (
+                    {payables.map((record: any) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="font-medium text-gray-900 whitespace-nowrap">
                           {record.invoiceNumber}
                         </TableCell>
-                        <TableCell className="text-gray-700">{record.party}</TableCell>
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="text-gray-700 whitespace-nowrap">{record.party}</TableCell>
+                        <TableCell className="font-medium text-gray-900 whitespace-nowrap">
                           ₹{record.amount.toLocaleString()}
                         </TableCell>
-                        <TableCell className="text-gray-700">
+                        <TableCell className="text-gray-700 whitespace-nowrap">
                           {new Date(record.dueDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(record.status)}>
+                          <Badge className={getStatusColor(record.status) + ' whitespace-nowrap'}>
                             {record.status}
                           </Badge>
                         </TableCell>
